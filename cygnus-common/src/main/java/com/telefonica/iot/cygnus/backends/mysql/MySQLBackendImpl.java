@@ -159,8 +159,8 @@ public class MySQLBackendImpl implements MySQLBackend {
         } catch (SQLTimeoutException e) {
             try {
                 con.close();
-            } catch (SQLException e) {
-                throw new CygnusRuntimeError("close connection error", "SQLException", e.getMessage());
+            } catch (SQLException ex) {
+                throw new CygnusRuntimeError("close connection error", "SQLException", ex.getMessage());
             } // try catch
             throw new CygnusPersistenceError("Data insertion error", "SQLTimeoutException", e.getMessage());
         } catch (SQLException e) {
