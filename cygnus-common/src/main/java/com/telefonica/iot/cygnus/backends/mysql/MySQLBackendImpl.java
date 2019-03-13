@@ -478,8 +478,9 @@ public class MySQLBackendImpl implements MySQLBackend {
                 }
             } catch (SQLException e) {
                 LOGGER.warn("connection not valid " + e);
-                throw new CygnusRuntimeError("connection not valid", "SQLException", e.getMessage());            
+                throw new CygnusRuntimeError("connection not valid", "SQLException", e.getMessage());
+            }
         }
     } // MySQLDriver
-    
 } // MySQLBackendImpl
+
