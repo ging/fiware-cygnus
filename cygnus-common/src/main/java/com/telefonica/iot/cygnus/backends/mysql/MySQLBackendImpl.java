@@ -466,18 +466,19 @@ public class MySQLBackendImpl implements MySQLBackend {
 
 
         private void safeClose(Connection con, String dbName) throws CygnusRuntimeError {
-            if (con != null && con.isValid(0)) {
-                try {
-                    // return to connections to pool
-                    connections.put(dbName, con);
-                } catch (SQLException e) {
-                    LOGGER.warn("connection not valid " + e);
-                    throw new CygnusRuntimeError("connection not valid", "SQLException", e.getMessage());
-                } catch (Exception e) {
-                    LOGGER.warn("Failed to return the connection to the pool " + e);
-                    throw new CygnusRuntimeError("connections cache error", "Exception", e.getMessage());
+            try {            
+                if (con != null && con.isValid(0)) {
+                    try {                                
+                        // return to connections to pool
+                        connections.put(dbName, con);
+                    } catch (Exception e) {
+                        LOGGER.warn("Failed to return the connection to the pool " + e);
+                        throw new CygnusRuntimeError("connections cache error", "Exception", e.getMessage());
+                    }
                 }
-            }
+            } catch (SQLException e) {
+                LOGGER.warn("connection not valid " + e);
+                throw new CygnusRuntimeError("connection not valid", "SQLException", e.getMessage());            
         }
     } // MySQLDriver
     
