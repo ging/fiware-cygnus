@@ -157,7 +157,11 @@ public class MySQLBackendImpl implements MySQLBackend {
             LOGGER.debug("Executing MySQL query '" + query + "'");
             stmt.executeUpdate(query);
         } catch (SQLTimeoutException e) {
-            con.close();
+            try {
+                con.close();
+            } catch (SQLException e) {
+                throw new CygnusRuntimeError("close connection error", "SQLException", e.getMessage());
+            } // try catch
             throw new CygnusPersistenceError("Data insertion error", "SQLTimeoutException", e.getMessage());
         } catch (SQLException e) {
             throw new CygnusBadContextData("Data insertion error", "SQLException", e.getMessage());
@@ -348,7 +352,7 @@ public class MySQLBackendImpl implements MySQLBackend {
         if (con != null) {
             try {
                 driver.safeClose(con, dbName);
-            } catch (SQLException e) {
+            } catch (CygnusRuntimeError e) {
                 throw new CygnusRuntimeError("Objects closing error", "SQLException", e.getMessage());
             } // try catch
         } // if
@@ -461,18 +465,20 @@ public class MySQLBackendImpl implements MySQLBackend {
         } // createConnection
 
 
-        private void safeClose(Connection con, String dbName) {
-            if (con != null) {
+        private void safeClose(Connection con, String dbName) throws CygnusRuntimeError {
+            if (con != null && con.isValid(0)) {
                 try {
                     // return to connections to pool
                     connections.put(dbName, con);
-                }
-                catch (Exception e) {
+                } catch (SQLException e) {
+                    LOGGER.warn("connection not valid " + e);
+                    throw new CygnusRuntimeError("connection not valid", "SQLException", e.getMessage());
+                } catch (Exception e) {
                     LOGGER.warn("Failed to return the connection to the pool " + e);
+                    throw new CygnusRuntimeError("connections cache error", "Exception", e.getMessage());
                 }
             }
         }
-        
     } // MySQLDriver
     
 } // MySQLBackendImpl
