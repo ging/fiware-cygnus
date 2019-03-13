@@ -99,7 +99,7 @@ public class MySQLBackendImpl implements MySQLBackend {
             throw new CygnusPersistenceError("Database creation error", "SQLException", e.getMessage());
         } // try catch
         
-        closeMySQLObjects(con, stmt);
+        closeMySQLObjects(con, stmt, "");
         
         LOGGER.debug("Trying to add '" + dbName + "' to the cache after database creation");
         cache.addDb(dbName);
@@ -132,7 +132,7 @@ public class MySQLBackendImpl implements MySQLBackend {
             throw new CygnusPersistenceError("Table creation error", "SQLException", e.getMessage());
         } // try catch
         
-        closeMySQLObjects(con, stmt);
+        closeMySQLObjects(con, stmt, dbName);
         
         LOGGER.debug("Trying to add '" + tableName + "' to the cache after table creation");
         cache.addTable(dbName, tableName);
@@ -162,7 +162,7 @@ public class MySQLBackendImpl implements MySQLBackend {
             throw new CygnusBadContextData("Data insertion error", "SQLException", e.getMessage());
         } // try catch
         
-        closeMySQLObjects(con, stmt);
+        closeMySQLObjects(con, stmt, dbName);
         
         LOGGER.debug("Trying to add '" + dbName + "' and '" + tableName + "' to the cache after insertion");
         cache.addDb(dbName);
@@ -190,10 +190,10 @@ public class MySQLBackendImpl implements MySQLBackend {
             // A CachedRowSet is "disconnected" from the source, thus can be used once the statement is closed
             CachedRowSet crs = new CachedRowSetImpl();
             crs.populate(rs);
-            closeMySQLObjects(con, stmt);
+            closeMySQLObjects(con, stmt, dbName);
             return crs;
         } catch (SQLException e) {
-            closeMySQLObjects(con, stmt);
+            closeMySQLObjects(con, stmt, dbName);
             throw new CygnusPersistenceError("Querying error", "SQLException", e.getMessage());
         } // try catch
     } // select
@@ -219,7 +219,7 @@ public class MySQLBackendImpl implements MySQLBackend {
             throw new CygnusPersistenceError("Deleting error", "SQLException", e.getMessage());
         } // try catch
         
-        closeMySQLObjects(con, stmt);
+        closeMySQLObjects(con, stmt, dbName);
     } // delete
     
     @Override
@@ -343,10 +343,10 @@ public class MySQLBackendImpl implements MySQLBackend {
      * @param stmt
      * @return True if the MySQL objects have been closed, false otherwise.
      */
-    private void closeMySQLObjects(Connection con, Statement stmt) throws CygnusRuntimeError {
+    private void closeMySQLObjects(Connection con, Statement stmt, String dbName) throws CygnusRuntimeError {
         if (con != null) {
             try {
-                con.close();
+                safeClose(con, dbName);
             } catch (SQLException e) {
                 throw new CygnusRuntimeError("Objects closing error", "SQLException", e.getMessage());
             } // try catch
@@ -360,6 +360,19 @@ public class MySQLBackendImpl implements MySQLBackend {
             } // try catch
         } // if
     } // closeMySQLObjects
+
+
+    private void safeClose(Connection con, String dbName) {
+        if (con != null) {
+            try {
+                // return to connections to pool
+                connections.put(dbName, con);
+            }
+            catch (Exception e) {
+                LOGGER.warn("Failed to return the connection to the pool " + e);
+            }
+        }
+    }
     
     /**
      * This code has been extracted from MySQLBackendImpl.getConnection() for testing purposes. By extracting it into a
@@ -398,7 +411,7 @@ public class MySQLBackendImpl implements MySQLBackend {
             try {
                 // FIXME: the number of cached connections should be limited to a certain number; with such a limit
                 //        number, if a new connection is needed, the oldest one is closed
-                Connection con = connections.get(dbName);
+                Connection con = connections.remove(dbName);
 
                 if (con == null || !con.isValid(0)) {
                     if (con != null) {
@@ -406,7 +419,6 @@ public class MySQLBackendImpl implements MySQLBackend {
                     } // if
 
                     con = createConnection(dbName);
-                    connections.put(dbName, con);
                     LOGGER.debug("Number of cached mysql connections: " + connections.size());
                 } // if
 
