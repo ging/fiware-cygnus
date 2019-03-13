@@ -157,6 +157,7 @@ public class MySQLBackendImpl implements MySQLBackend {
             LOGGER.debug("Executing MySQL query '" + query + "'");
             stmt.executeUpdate(query);
         } catch (SQLTimeoutException e) {
+            con.close();
             throw new CygnusPersistenceError("Data insertion error", "SQLTimeoutException", e.getMessage());
         } catch (SQLException e) {
             throw new CygnusBadContextData("Data insertion error", "SQLException", e.getMessage());
@@ -346,7 +347,7 @@ public class MySQLBackendImpl implements MySQLBackend {
     private void closeMySQLObjects(Connection con, Statement stmt, String dbName) throws CygnusRuntimeError {
         if (con != null) {
             try {
-                safeClose(con, dbName);
+                driver.safeClose(con, dbName);
             } catch (SQLException e) {
                 throw new CygnusRuntimeError("Objects closing error", "SQLException", e.getMessage());
             } // try catch
@@ -362,17 +363,7 @@ public class MySQLBackendImpl implements MySQLBackend {
     } // closeMySQLObjects
 
 
-    private void safeClose(Connection con, String dbName) {
-        if (con != null) {
-            try {
-                // return to connections to pool
-                connections.put(dbName, con);
-            }
-            catch (Exception e) {
-                LOGGER.warn("Failed to return the connection to the pool " + e);
-            }
-        }
-    }
+
     
     /**
      * This code has been extracted from MySQLBackendImpl.getConnection() for testing purposes. By extracting it into a
@@ -468,6 +459,19 @@ public class MySQLBackendImpl implements MySQLBackend {
             return DriverManager.getConnection("jdbc:mysql://" + mysqlHost + ":" + mysqlPort + "/" + dbName
                     + "?useUnicode=true&characterEncoding=UTF-8", mysqlUsername, mysqlPassword);
         } // createConnection
+
+
+        private void safeClose(Connection con, String dbName) {
+            if (con != null) {
+                try {
+                    // return to connections to pool
+                    connections.put(dbName, con);
+                }
+                catch (Exception e) {
+                    LOGGER.warn("Failed to return the connection to the pool " + e);
+                }
+            }
+        }
         
     } // MySQLDriver
     
