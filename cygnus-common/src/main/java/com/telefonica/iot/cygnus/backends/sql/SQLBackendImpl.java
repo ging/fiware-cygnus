@@ -228,8 +228,12 @@ public class SQLBackendImpl implements SQLBackend{
 
         // get a connection to the given destination
         Connection con = driver.getConnection(destination);
-        String query = "select " + selection + " from `" + tableName + "` order by recvTime";
-
+        String query = "";
+        if (sqlInstance.equals("mysql")) {
+            query = "select " + selection + " from `" + tableName + "` order by recvTime";
+        } else {
+            query = "select " + selection + " from " + destination + "." + tableName + " order by recvTime";
+        }
         try {
             stmt = con.createStatement();
         } catch (SQLException e) {
@@ -265,8 +269,12 @@ public class SQLBackendImpl implements SQLBackend{
 
         // get a connection to the given destination
         Connection con = driver.getConnection(destination);
-        String query = "delete from `" + tableName + "` where " + filters;
-
+        String query = "";
+        if (sqlInstance.equals("mysql")) {
+            query = "delete from `" + tableName + "` where " + filters;
+        } else {
+            query = "delete from " + destination + "." + tableName + " where " + filters;
+        }
         try {
             stmt = con.createStatement();
         } catch (SQLException e) {
