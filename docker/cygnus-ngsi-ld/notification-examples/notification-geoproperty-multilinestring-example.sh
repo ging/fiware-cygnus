@@ -1,4 +1,4 @@
-curl -X POST 'http://192.168.0.11:5050/notify' -H 'Content-Type: application/ld+json' -H 'Fiware-service: openiot' -d @- <<EOF 
+curl -X POST 'http://localhost:5050/notify' -H 'Content-Type: application/ld+json' -H 'Fiware-service: openiot2' -d @- <<EOF
 {
   "id": "urn:ngsi-ld:Notification:352334523452",
   "type": "Notification",
@@ -34,8 +34,8 @@ curl -X POST 'http://192.168.0.11:5050/notify' -H 'Content-Type: application/ld+
             "location": {
             "type": "GeoProperty",
             "value": {
-                "type": "Point",
-                "coordinates": [-8.5, 41.2]
+                "type": "MultiLineString",
+                "coordinates": [ [ [ 1.01, 4.003 ], [ 2.01, 4.003 ] ,[ 6.01, 5.003 ]], [ [ 3.01, 4.003 ], [ 4.01, 4.003 ] ,[ 6.01, 5.003 ]] ]
             }
         }
     }
